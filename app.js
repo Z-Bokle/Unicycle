@@ -31,7 +31,7 @@ const getLine = (question) => {
     })
 }
 
-//登录
+//登录并存储cookie
 const login = async (oauthKey) => {
     console.log('Using oauthKey:',oauthKey)
     let loginRes = await fetch('https://passport.bilibili.com/qrcode/getLoginInfo',{
@@ -161,14 +161,14 @@ const unicycle = async () => {
 
 (async () => {
     //主函数
+    let exist = fs.existsSync('./loginCookie.txt')
+    if(!exist) fs.writeFileSync('./loginCookie.txt','') //文件不存在则新建文件
     let cookie = fs.readFileSync('./loginCookie.txt', 'utf-8') //同步方法读取cookie
-    if(!cookie){
+    if((!exist) || (cookie.length === 0)){
         console.log("未检测到登录信息，请扫码登录")
         await qrLogin()
     }
     await getCookie()
-
-    // console.log(processedCookie)
 
     while(true){
         let userAnswer = await getLine("请输入指令执行操作，输入help查询可用指令\n")
