@@ -138,24 +138,59 @@ const postData = async (roomid, msg, csrf) => {
 const unicycle = async () => {
     result = [{status:'success',times:0},{status:'fail',times:0}]
 
+    let cnt = config.cnt <= 0 ? 800 : Math.min(config.cnt, 800)
 
     console.log('-----------------开始执行独轮车操作-----------------')
 
-    async function run(){
-    for(let i = 0; i < config.cnt; i++)
-        setTimeout(() => {
-            console.time(`发送弹幕${i}用时`)
-            postData(config.roomid,config.msg,processedCookie.get('bili_jct'))
-            console.timeEnd(`发送弹幕${i}用时`)
-        }, config.delay * i)
-
+    async function run(mode){
         setTimeout(() => {
             console.log('-----------------结束执行独轮车操作-----------------')
             console.log('本次独轮车运行情况')
             console.table(result)
-        },(config.cnt + 1) * config.delay)
+        },(cnt + 1) * config.delay)   
+
+        if (mode === 0) {//复读模式
+            for(let i = 0; i < cnt; i++)
+                setTimeout(() => {
+                    console.time(`发送弹幕${i}用时`)
+                    postData(config.roomid,config.msg,processedCookie.get('bili_jct'))
+                    console.log("尝试发送弹幕",config.msg)
+                    console.timeEnd(`发送弹幕${i}用时`)
+                }, config.delay * i)         
+        }
+        else if (mode === 1) {//随机复读模式
+            for(let i = 0; i < cnt; i++){
+                let str = config.msgList[Math.floor(Math.random() * config.msgList.length)]
+                setTimeout(() => {
+                    console.time(`发送弹幕${i}用时`)
+                    postData(config.roomid,str,processedCookie.get('bili_jct'))
+                    console.log("尝试发送弹幕",str)
+                    console.timeEnd(`发送弹幕${i}用时`)
+                }, config.delay * i)                
+            }
+        } 
+        else if (mode === 2) {//顺序播报模式
+            if(fs.existsSync(config.msgFile)){
+                let text = fs.readFileSync(config.msgFile,'utf-8')
+                for(let i = 0; i < cnt; i++){
+                    let str = text.substring(i * 20, i * 20 + 19)
+                    setTimeout(() => {
+                        console.time(`发送弹幕${i}用时`)
+                        postData(config.roomid,str,processedCookie.get('bili_jct'))
+                        console.log("尝试发送弹幕",str)
+                        console.timeEnd(`发送弹幕${i}用时`)
+                    }, config.delay * i)                
+                }               
+            }
+            else{
+                console.error("未找到指定文件:",config.msgFile)
+            }
+        }
+        else {
+            console.error("错误的mode数值:",config.mode)
+        }
     }
-    await run()
+    await run(config.mode)
 
 }
 
