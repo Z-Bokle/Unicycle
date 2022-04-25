@@ -195,8 +195,9 @@ const unicycle = async () => {
 
 }
 
+//搜索特定评论区内被阿瓦隆锁定的评论
 const awlSearch = async () => {
-    let commentType = new Set([{code:1,type:'视频稿件',oid:'avid'},{code:11,type:'图片动态/相簿',oid:'相簿id'},{code:12,type:'专栏',oid:'专栏cvid'},{code:17,type:'动态(纯文字或分享)',oid:'动态id'}])
+    let commentType = new Set([{code:1,type:'视频稿件',oid:'avid'},{code:12,type:'专栏',oid:'专栏cvid'},{code:17,type:'动态(纯文字或分享)',oid:'动态id'}])
     console.log(commentType)
     let code = await getLine("请输入需要查询的评论区类型对应code，目前支持上述类型\n")
     let oid = await getLine("请输入需要查询的评论区类型对应oid，目前支持上述类型\n")
@@ -213,12 +214,13 @@ const awlSearch = async () => {
     .end((err,res) => {
         
         console.log("本次http请求状态码",res.status)
+        // console.log(res.body)
         cnt = res.body.data.cursor.all_count
         console.log("预计总共扫描",cnt,"条评论")
         is_end = res.body.data.cursor.is_end
         next = res.body.data.cursor.next
         console.timeEnd("获取评论区总信息用时：")
-        
+
         for(i = cnt;i > 1 && !is_end; i-=20)
             setTimeout(() => {
                 request.get(`http://api.bilibili.com/x/v2/reply/main?type=${code}&oid=${oid}&mode=2&next=${next}`)
@@ -228,19 +230,21 @@ const awlSearch = async () => {
                     if(res.body.code === 0){
                         let replies = res.body.data.replies
                         replies.forEach((replie) => {
-                            if(replie.state == 17) awlComment.push(replie)
-                            // console.log(replie)
+                            if(replie.state == 17){
+                                awlComment.push(replie)
+                                console.log('检测到awl评论',replie)
+                            }
                         })
                         is_end = res.body.data.cursor.is_end
                         next = res.body.data.cursor.next
-                        
                     }
                     else{
                         console.log(res.body.message)
                     }
                 })
             }, 1000 * (cnt-i) / 20)
-
+            //由于B站反爬虫限制，直接采用异步逻辑会导致IP被暂时封锁，可采用代理/分布式部署解决问题，但小成本项目，这里采用设置特定间隔的方式模拟同步逻辑
+            //分布式爬虫一旦设置不好就变成类似DDoS的情形了...
         setTimeout(() => {
             console.log('-----------------结束扫描阿瓦隆操作-----------------')
             console.log("共统计到您的阿瓦隆评论数量：",awlComment.length)
